@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+nested-lookup
+logstash_formatter
+fastapi_utils
+dotted-dict
+requests
+email-validator
+bcrypt
+pymongo
+stripe
+gridfs
