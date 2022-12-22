@@ -15,6 +15,12 @@ from auth import *
 
 from fastapi_utils.tasks import repeat_every
 
+app = FastAPI(
+	title="OPENAPI-UI",
+	description="OPENAPI UI",
+	version="0.0.1",
+)
+
 
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
@@ -39,8 +45,8 @@ def login(creds = Depends(get_current_username)):
 	return OperationSuccess().dict()
 
 
-app.include_router(search.router,
-	prefix="/api/v1/search",
-	tags=['Domain Search'],
+app.include_router(generate.router,
+	prefix="/api/v1/build",
+	tags=['SDK Generate'],
     dependencies=[Depends(get_current_username)],
 	responses={404: {"description": "Not found"}})

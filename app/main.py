@@ -8,6 +8,4 @@ if __name__ == "__main__":
 		port=int(APP_PORT),
 		reload=APP_RELOAD,
 		root_path=API_ROOT_PATH,
-		debug=APP_DEBUG,
-		log_level=LOG_LEVEL,
-		workers=4)
+		log_level=LOG_LEVEL)

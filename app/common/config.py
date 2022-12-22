@@ -1,14 +1,12 @@
 #!/usr/bin/env python3
 import os
 import sys
-import stripe
 import bcrypt
 import logging
 import datetime
 from logging.handlers import RotatingFileHandler
 from logstash_formatter import LogstashFormatter
 from dotted_dict import DottedDict
-from fastapi import FastAPI
 
 salt = bcrypt.gensalt()
 
@@ -16,13 +14,15 @@ salt = bcrypt.gensalt()
 ##########################################################################
 # APP CONFIG
 ##########################################################################
-APP_HOST = "127.0.0.1"
+APP_HOST = "0.0.0.0"
 APP_PORT = os.getenv("API_PORT", 8000)
 APP_DEBUG = True
 APP_RELOAD = True
 LOGFILE = "/tmp/api.log"
 LOG_LEVEL = 'debug'
 API_ROOT_PATH = ""
+REDIS_INSTANCE = os.getenv("REDIS_URI", "redis://:@localhost:6379")
+OPEN_API_GEN = os.getenv("OPEN_API_GEN", "openapi-generator-cli-6.2.1.jar")
 ################################################################################
 # MONGO
 ################################################################################
@@ -35,11 +35,6 @@ GRIDFS_DB = 'gridfs'
 ##########################################################################
 # RestAPI CONFIG
 ##########################################################################
-app = FastAPI(
-	title="OPENAPI-UI",
-	description="OPENAPI UI",
-	version="0.0.1",
-)
 REGISTER_USER_ALLOWED_ROLE = ['admin', 'frontend']
 BLOCK_REGISTRATION = False
 

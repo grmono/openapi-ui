@@ -1,0 +1,84 @@
+version: "3.3"
+
+services:
+    redis_server:
+        image: redis
+        command: redis-server
+        networks:
+            backend:
+                ipv4_address: 10.0.0.3
+
+    flower:
+        build:
+            context: ./
+            dockerfile: ./Dockerfile
+        command: flower
+        ports:
+            - "5555:5555"
+        environment:
+            FLOWER_PORT: 5555
+            REDIS_URI: redis://:@10.0.0.3:6379
+        depends_on:
+            - mongo
+            - celery
+        networks:
+            backend:
+                ipv4_address: 10.0.0.6
+        volumes:
+            - ./app/:/app
+
+    api:
+        build:
+            context: ./
+            dockerfile: ./Dockerfile
+        command: api
+        ports:
+            - "8000:8000"
+        environment:
+            FLOWER_PORT: 8080
+            REDIS_URI: redis://:@10.0.0.3:6379
+        depends_on:
+            - mongo
+            - celery
+        networks:
+            backend:
+                ipv4_address: 10.0.0.100
+        volumes:
+            - ./app/:/app
+
+    workers:
+        build:
+            context: ./
+            dockerfile: ./Dockerfile
+        command: workers
+        environment:
+            REDIS_URI: redis://:@10.0.0.3:6379
+        depends_on:
+            - mongo
+            - celery
+        networks:
+            backend:
+                ipv4_address: 10.0.0.4
+        volumes:
+            - ./app/:/app
+
+
+    mongo:
+        image: mongo
+        container_name: mongo-db
+        volumes:
+            - ./data/db:/data/db
+        ports:
+            - "27017:27017"
+        restart: unless-stopped
+        networks:
+            backend:
+                ipv4_address: 10.0.0.5
+
+networks:
+  backend:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+      - subnet: 10.0.0.0/24

@@ -1,42 +1,44 @@
 from fastapi import APIRouter, Request, HTTPException, Header, Depends
-from common.config import *
-from common.utilities import *
 from error_handler import *
-from modules.cy_domains import *
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
+
 from definitions.response_models import *
 from definitions.request_models import *
-from database.db_handler import DomainUserSearcher
+from definitions.enums import *
 
+from common.config import *
+from common.utilities import *
+
+from database.db_handler import *
+from celery_task.tasks import *
+
+import uuid
 
 security = HTTPBasic()
 router = APIRouter()
 
 
-@router.get("/report")
-def search_for_user_purchases(credentials: HTTPBasicCredentials = Depends(security)):
+@router.post("")
+def build_sdk(language: SupportedLanguages, url: HttpUrl, project_name: str = None, credentials: HTTPBasicCredentials = Depends(security)):
 	try:
-		handler = DomainUserSearcher()
-		domains = handler.search_for_user_purchases(credentials.username)
-		response = []
-		for entry in domains:
-			response.append(PurchaseReport(**entry).dict())
-		return response
+		task = TaskStatus(uuid=str(uuid.uuid4()), user=credentials.username)
+		GenericMongoHandler(TASKS).store(task.dict())
+		build_sdk_from_url.apply_async(args=[url, language, credentials.username, task.uuid])
+		return task.dict()
 	except Exception as e:
 		logger.error(e)
 		abort(500)
 
-@router.post("/account/information")
-def store_account_info(data: AccountInformation, credentials: HTTPBasicCredentials = Depends(security)):
-	try:
-		data = AccountInformation(username = credentials.username)
 
-		handler = DomainUserSearcher()
-		domains = handler.search_for_user_purchases(credentials.username)
-		response = []
-		for entry in domains:
-			response.append(PurchaseReport(**entry).dict())
-		return response
+@router.get("/task/status")
+def build_status(uuid=None, credentials: HTTPBasicCredentials = Depends(security)):
+	try:
+		if uuid:
+			res = GenericMongoHandler(TASKS).find_one({'uuid': uuid, 'user': credentials.username})
+			if res.get("status") in [TaskState.FINISHED.value, TaskState.FAILED.value]:
+				GenericMongoHandler(BUILDS).find_one({'uuid': uuid, 'user': credentials.username})
+		else:
+			return GenericMongoHandler(TASKS).find_many({'user': credentials.username})
 	except Exception as e:
 		logger.error(e)
 		abort(500)

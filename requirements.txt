@@ -5,8 +5,11 @@ logstash_formatter
 fastapi_utils
 dotted-dict
 requests
-email-validator
+email_validator
 bcrypt
 pymongo
-stripe
-gridfs
+docker
+celery==5.2.7
+redis==4.1.2
+flower
+gevent
