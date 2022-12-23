@@ -35,7 +35,10 @@ services:
         ports:
             - "8000:8000"
         environment:
+            MONGO_IP: 10.0.0.5
             FLOWER_PORT: 8080
+            ADMIN_USER: admin2
+            ADMIN_PASS: admin
             REDIS_URI: redis://:@10.0.0.3:6379
         depends_on:
             - mongo
@@ -52,6 +55,7 @@ services:
             dockerfile: ./Dockerfile
         command: workers
         environment:
+            MONGO_IP: 10.0.0.5
             REDIS_URI: redis://:@10.0.0.3:6379
         depends_on:
             - mongo

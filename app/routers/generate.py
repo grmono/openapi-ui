@@ -31,14 +31,23 @@ def build_sdk(language: SupportedLanguages, url: HttpUrl, project_name: str = No
 
 
 @router.get("/task/status")
-def build_status(uuid=None, credentials: HTTPBasicCredentials = Depends(security)):
+def build_status(uuid: str = None, credentials: HTTPBasicCredentials = Depends(security)):
 	try:
-		if uuid:
-			res = GenericMongoHandler(TASKS).find_one({'uuid': uuid, 'user': credentials.username})
-			if res.get("status") in [TaskState.FINISHED.value, TaskState.FAILED.value]:
-				GenericMongoHandler(BUILDS).find_one({'uuid': uuid, 'user': credentials.username})
-		else:
+		if not uuid:
+			logger.info("Checking for users total tasks")
 			return GenericMongoHandler(TASKS).find_many({'user': credentials.username})
+		else:
+			res = GenericMongoHandler(TASKS).find_one({'uuid': uuid, 'user': credentials.username})
+
+		logger.info("Checking for completed tasks")
+		if not res:
+
+			logger.info("nothing found")
+			return OperationError(error='uuid doesnt exist').dict()
+		elif res.get("status") in [TaskState.FINISHED.value, TaskState.FAILED.value]:
+			return GenericMongoHandler(BUILDS).find_one({'uuid': uuid, 'user': credentials.username})
+		else:
+			return res
 	except Exception as e:
 		logger.error(e)
 		abort(500)

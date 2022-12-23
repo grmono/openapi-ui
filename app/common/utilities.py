@@ -2,11 +2,14 @@
 import os
 import re
 import requests
+import json
+import uuid
+from bson.objectid import ObjectId
+from bson import json_util
 from datetime import datetime as datetime
 from pydantic import HttpUrl
 
 from definitions.response_models import *
-
 
 
 def get_timestamp():
@@ -34,3 +37,9 @@ def get_size(start_path):
             if not os.path.islink(fp):
                 total_size += os.path.getsize(fp)
     return total_size
+
+
+def mongo2json(object, many=True):
+	if many:
+		return json.loads(json_util.dumps(list(object)))
+	return json.loads(json_util.dumps(object))

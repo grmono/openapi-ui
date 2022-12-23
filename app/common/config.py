@@ -23,10 +23,13 @@ LOG_LEVEL = 'debug'
 API_ROOT_PATH = ""
 REDIS_INSTANCE = os.getenv("REDIS_URI", "redis://:@localhost:6379")
 OPEN_API_GEN = os.getenv("OPEN_API_GEN", "openapi-generator-cli-6.2.1.jar")
+
+ADMIN_USER = os.getenv("ADMIN_USER")
+ADMIN_PASS = os.getenv("ADMIN_PASS")
 ################################################################################
 # MONGO
 ################################################################################
-MONGO_HOST = 'localhost'
+MONGO_HOST =  os.getenv("MONGO_IP", "localhost")
 MONGO_PORT = 27017
 MONGO_USERNAME = 'admin'
 MONGO_PASSWORD = ''

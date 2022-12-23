@@ -8,7 +8,9 @@ from definitions.enums import *
 class BuildLogs(BaseModel):
     logs: str
     user: str
+    file_size: int = 0
     datetime: str
+    url: str = None
     language: str
     operation_id: str
     file_size: int = 0
