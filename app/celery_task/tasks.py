@@ -6,6 +6,9 @@ import requests
 import subprocess
 import tempfile
 import uuid
+import bson
+import base64
+from bson.binary import Binary
 from pathlib import Path
 from dotted_dict import DottedDict
 from subprocess import check_output
@@ -27,12 +30,13 @@ from celery_task.worker import celery_worker
 def build_sdk_from_url(url: HttpUrl, language: SupportedLanguages, user: str, operation_id: str):
 	search = {'uuid': operation_id}
 	handler = GenericMongoHandler(TASKS)
-	builds = GenericMongoHandler(BUILDS)
+	builds = GenericMongoHandler(DOCUMENTS)
+
 	try:
 		handler.update(search, {'status': TaskState.RUNNING.value})
 		temp_dir = tempfile.mkdtemp()
 		language = str(language.lower())
-		command = f"""java -jar {OPEN_API_GEN} -i {url} -g {language} -o {temp_dir}"""
+		command = f"""java -jar {OPEN_API_GEN} generate -i {url} -g {language} -o {temp_dir}"""
 		logs = check_output(command.split(" "))
 		# logs = subprocess.call(command.split(" "))
 		data = BuildLogs(
@@ -45,13 +49,14 @@ def build_sdk_from_url(url: HttpUrl, language: SupportedLanguages, user: str, op
 		)
 		builds.store(data.dict())
 		temp_dir_size = get_size(temp_dir)
+		logger.info(f"Build directory size:{temp_dir_size}")
 		if temp_dir_size:
 			data.file_size = temp_dir_size
-			os.system(f"tar -cvf {operation_id}.tar {temp_dir}")
-			os.system(f"gzip {operation_id}.tar")
-			read_file = Path(f"{operation_id}.tar")
-			GenericGridFSHandler().store(bytes(read_file), operation_id)
+			os.system(f"tar -c -f -z -v {operation_id}.tar.gz {temp_dir}")
+			with open(f"{operation_id}.tar.gz") as f:
+				encoded = Binary(f.read())
 			os.remove(f"{operation_id}.tar")
+			builds.store({'uuid': operation_id, 'file': encoded, 'datetime': get_timestamp(), 'url': url})
 		os.rmdir(temp_dir)
 		handler.update(search, {'status': TaskState.FINISHED.value})
 		return data.dict()
@@ -59,3 +64,4 @@ def build_sdk_from_url(url: HttpUrl, language: SupportedLanguages, user: str, op
 		logger.error(e)
 		update = {'status': TaskState.FAILED.value, 'error': str(e)}
 		handler.update(search, update)
+		return OperationError(error=str(e)).dict()

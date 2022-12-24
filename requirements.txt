@@ -13,3 +13,5 @@ celery==5.2.7
 redis==4.1.2
 flower
 gevent
+python-multipart
+content_size_limit_asgi

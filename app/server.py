@@ -15,12 +15,18 @@ from auth import *
 
 from fastapi_utils.tasks import repeat_every
 
+from starlette.applications import Starlette
+from starlette.responses import PlainTextResponse
+
+from content_size_limit_asgi import ContentSizeLimitMiddleware
+
 app = FastAPI(
 	title="OPENAPI-UI",
 	description="OPENAPI UI",
 	version="0.0.1",
 )
 
+app.add_middleware(ContentSizeLimitMiddleware, max_content_size=512)
 
 @app.middleware("http")
 async def add_process_time_header(request: Request, call_next):
