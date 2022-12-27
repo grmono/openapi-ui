@@ -1,13 +1,25 @@
 version: "3.3"
 
 services:
+    openapi_generator:
+        image: openapitools/openapi-generator-online:latest-release
+        ports:
+            - "8081:8080"
+        depends_on:
+          - mongo
+          - celery
+        networks:
+            backend:
+                ipv4_address: 10.0.0.10
+        volumes:
+            - ./app/:/app
+
     redis_server:
         image: redis
         command: redis-server
         networks:
             backend:
                 ipv4_address: 10.0.0.3
-
     flower:
         build:
             context: ./
@@ -26,7 +38,6 @@ services:
                 ipv4_address: 10.0.0.6
         volumes:
             - ./app/:/app
-
     api:
         build:
             context: ./
@@ -35,6 +46,7 @@ services:
         ports:
             - "8000:8000"
         environment:
+            OPENAPI_GENERATOR: 10.0.0.10:8081
             MONGO_IP: 10.0.0.5
             FLOWER_PORT: 8080
             ADMIN_USER: admin2
@@ -48,13 +60,13 @@ services:
                 ipv4_address: 10.0.0.100
         volumes:
             - ./app/:/app
-
     workers:
         build:
             context: ./
             dockerfile: ./Dockerfile
         command: workers
         environment:
+            OPENAPI_GENERATOR: 10.0.0.10:8081
             MONGO_IP: 10.0.0.5
             REDIS_URI: redis://:@10.0.0.3:6379
         depends_on:
@@ -65,8 +77,6 @@ services:
                 ipv4_address: 10.0.0.4
         volumes:
             - ./app/:/app
-
-
     mongo:
         image: mongo
         container_name: mongo-db

@@ -9,8 +9,6 @@ from definitions.enums import *
 from common.config import *
 from common.utilities import *
 
-from modules.sdk_generator import *
-
 
 security = HTTPBasic()
 router = APIRouter()
@@ -19,9 +17,6 @@ router = APIRouter()
 @router.post("/create/user")
 def create_user(tenant_info: CreateTenant, credentials: HTTPBasicCredentials = Depends(security)):
     try:
-        if credentials.username not in REGISTER_USER_ALLOWED_ROLE:
-            abort(404)
-
     	if TenantManagement().create_tenant(tenant_info):
     		return OperationSuccess()
     	else:

@@ -8,7 +8,7 @@ from fastapi import FastAPI, HTTPException, Depends, Request, APIRouter
 from definitions.request_models import *
 from definitions.response_models import *
 
-from routers import generate
+from routers import generate, management, user_profile
 
 from common.config import *
 from auth import *
@@ -54,5 +54,19 @@ def login(creds = Depends(get_current_username)):
 app.include_router(generate.router,
 	prefix="/api/v1/build",
 	tags=['SDK Generate'],
+    dependencies=[Depends(get_current_username)],
+	responses={404: {"description": "Not found"}})
+
+
+app.include_router(management.router,
+	prefix="/api/v1/management",
+	tags=['Management'],
+    dependencies=[Depends(get_current_username), Depends(only_management)],
+	responses={404: {"description": "Not found"}})
+
+
+app.include_router(user_profile.router,
+	prefix="/api/v1/profile",
+	tags=['Profile Management'],
     dependencies=[Depends(get_current_username)],
 	responses={404: {"description": "Not found"}})

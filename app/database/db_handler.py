@@ -55,3 +55,30 @@ class GenericMongoHandler():
 			return str(self.db.insert_one(model))
 		except Exception as e:
 			logger.error(e)
+
+
+class UserMongoHandler():
+
+
+	def __init__(self, database: str, credentials):
+		self.db = database
+		self.username = credentials.username
+
+	def find_one(self, search):
+		search['user'] = self.username
+		return mongo2json(self.db.find_one(search), False)
+
+	def find_many(self, search):
+		search['user'] = self.username
+		return mongo2json(self.db.find_many(search, True))
+
+	def update(self, search: dict, update: dict, upsert=True):
+		search['user'] = self.username
+		return self.db.update_one(search, {"$set": update}, upsert=upsert)
+
+	def store(self, model: dict):
+		try:
+			model['username'] = self.username
+			return str(self.db.insert_one(model))
+		except Exception as e:
+			logger.error(e)

@@ -11,6 +11,9 @@ from pydantic import HttpUrl
 
 from definitions.response_models import *
 
+from openapi_spec_validator import validate_spec
+from openapi_spec_validator.readers import read_from_filename
+
 
 def get_timestamp():
 	'''

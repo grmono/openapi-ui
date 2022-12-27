@@ -15,3 +15,5 @@ flower
 gevent
 python-multipart
 content_size_limit_asgi
+GitPython
+openapi-spec-validator

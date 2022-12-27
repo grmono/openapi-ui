@@ -18,6 +18,13 @@ class CreateTenant(BaseModel):
 	firstname: str = None
 	lastname: str = None
 	creation_date: str = None
+	ssh_key: str = None
 	@validator("password")
 	def crypt_pass(cls, v):
 		return bcrypt.hashpw(v.encode(), salt)
+
+
+class OpenAPIRequest(BaseModel):
+	openAPIUrl: str = ""
+	options: dict = {}
+	spec: dict = {}

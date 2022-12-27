@@ -1,8 +1,10 @@
 from fastapi import APIRouter, Request, HTTPException, Header, Depends, File, UploadFile
 from error_handler import *
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
-
-
+from starlette.responses import FileResponse
+import io
+import base64
+from starlette.responses import StreamingResponse
 
 from definitions.response_models import *
 from definitions.request_models import *
@@ -20,28 +22,31 @@ security = HTTPBasic()
 router = APIRouter()
 
 
-@router.post("/url")
-def build_sdk_url(language: SupportedLanguages, url: HttpUrl, project_name: str = None, credentials: HTTPBasicCredentials = Depends(security)):
+
+@router.post("/{project}")
+def build_sdk(
+	language: SupportedLanguages,
+	project: str,
+	credentials: HTTPBasicCredentials = Depends(security)):
 	try:
+		settings = UserMongoHandler(PROJECT_SETTINGS, credentials).find_one({'project': project})
+		if not settings:
+			return OperationError(error='unknown project')
+
 		task = TaskStatus(uuid=str(uuid.uuid4()), user=credentials.username)
-		GenericMongoHandler(TASKS).store(task.dict())
-		build_sdk_from_url.apply_async(args=[url, language, credentials.username, task.uuid])
+		if settings.get('url'):
+			GenericMongoHandler(TASKS).store(task.dict())
+			build_sdk_from_url.apply_async(args=[settings.get('url'), language, credentials.username, task.uuid, project])
+		elif settings.get('api_spec'):
+			GenericMongoHandler(TASKS).store(task.dict())
+			build_sdk_from_file.apply_async(args=[settings.get('api_spec'), language, credentials.username, task.uuid, project])
+		else:
+			return OperationError(error="Must specify specification via URL or Spec File")	
 		return task.dict()
 	except Exception as e:
 		logger.error(e)
 		abort(500)
 
-
-@router.post("/file")
-def build_sdk_file(language: SupportedLanguages, file: UploadFile = File(...), project_name: str = None, credentials: HTTPBasicCredentials = Depends(security)):
-	try:
-		task = TaskStatus(uuid=str(uuid.uuid4()), user=credentials.username)
-		GenericMongoHandler(TASKS).store(task.dict())
-		build_sdk_from_url.apply_async(args=[file, language, credentials.username, task.uuid])
-		return task.dict()
-	except Exception as e:
-		logger.error(e)
-		abort(500)
 
 
 @router.get("/task/status")
@@ -58,11 +63,37 @@ def build_status(uuid: str = None, credentials: HTTPBasicCredentials = Depends(s
 			return OperationError(error='uuid doesnt exist').dict()
 		elif res.get("status") in [TaskState.FINISHED.value, TaskState.FAILED.value]:
 			logger.info("Checking for completed tasks")
-			build_res = GenericMongoHandler(BUILDS).find_one({'operation_id': uuid, 'user': credentials.username})
+			build_res = GenericMongoHandler(BUILDS).find_one({'uuid': uuid, 'user': credentials.username})
 			res['build'] = build_res
 			return res
 		else:
 			return res
+	except Exception as e:
+		logger.error(e)
+		abort(500)
+
+
+@router.get("/download")
+def download_(uuid: str, credentials: HTTPBasicCredentials = Depends(security)):
+	try:
+		if not GenericMongoHandler(TASKS).find_one({'uuid': uuid, 'user': credentials.username}):
+			return OperationError(error='unknown uuid')
+
+		res = GenericMongoHandler(DOCUMENTS).find_one({'uuid': uuid, 'user': credentials.username})
+		if res and res.get('file'):
+			data = res['file']['$binary']['base64']
+			data = data.encode('ascii')
+			data = base64.b64decode(data)
+
+			return StreamingResponse(
+				io.BytesIO(data),
+				media_type="application/zip",
+				headers={
+					'Content-Disposition':
+					'attachment; filename="sdk.zip"'
+				}
+			)
+		return OperationError(error='not found')
 	except Exception as e:
 		logger.error(e)
 		abort(500)
