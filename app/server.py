@@ -37,15 +37,6 @@ async def add_process_time_header(request: Request, call_next):
 	return response
 
 
-# @repeat_every(seconds=3600)
-# def periodic_registration_search():
-#     CYDomainHandler().retrieved_domain_registration()
-#
-# @repeat_every(seconds=3600)
-# def periodic_charge_check():
-#     CYDomainCharger().check_for_charge()
-
-
 @app.get("/login")
 def login(creds = Depends(get_current_username)):
 	return OperationSuccess().dict()

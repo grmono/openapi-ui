@@ -9,7 +9,6 @@ import uuid
 import bson
 import base64
 import shutil
-
 from bson.binary import Binary
 from pathlib import Path
 from dotted_dict import DottedDict
@@ -17,14 +16,11 @@ from subprocess import check_output
 
 from common.utilities import *
 from common.config import *
-
 from database.db_handler import *
-
 from definitions.response_models import *
 from definitions.enums import *
 from definitions.request_models import *
 from definitions.mongo_models import *
-
 from celery_task.worker import celery_worker
 
 

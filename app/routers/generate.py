@@ -1,22 +1,20 @@
+import io
+import base64
+import uuid
 from fastapi import APIRouter, Request, HTTPException, Header, Depends, File, UploadFile
 from error_handler import *
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
 from starlette.responses import FileResponse
-import io
-import base64
 from starlette.responses import StreamingResponse
 
 from definitions.response_models import *
 from definitions.request_models import *
 from definitions.enums import *
-
 from common.config import *
 from common.utilities import *
-
 from database.db_handler import *
 from celery_task.generate_tasks import *
 
-import uuid
 
 security = HTTPBasic()
 router = APIRouter()
