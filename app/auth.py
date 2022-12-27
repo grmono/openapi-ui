@@ -26,7 +26,7 @@ def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
 			logger.warning(f"Blocked Tenant:{tenant_info} attempted to authenticate")
 			abort(403)
 		else:
-			logger.warning(f"Tenant validated succesfully")
+			logger.debug(f"Tenant validated succesfully")
 		return credentials
 	except Exception as e:
 		logger.error(e)

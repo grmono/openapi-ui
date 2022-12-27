@@ -46,7 +46,7 @@ services:
         ports:
             - "8000:8000"
         environment:
-            OPENAPI_GENERATOR: 10.0.0.10:8081
+            OPENAPI_GENERATOR: 10.0.0.10:8080
             MONGO_IP: 10.0.0.5
             FLOWER_PORT: 8080
             ADMIN_USER: admin2
@@ -66,7 +66,7 @@ services:
             dockerfile: ./Dockerfile
         command: workers
         environment:
-            OPENAPI_GENERATOR: 10.0.0.10:8081
+            OPENAPI_GENERATOR: 10.0.0.10:8080
             MONGO_IP: 10.0.0.5
             REDIS_URI: redis://:@10.0.0.3:6379
         depends_on:

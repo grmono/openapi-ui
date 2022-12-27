@@ -16,22 +16,28 @@ from common.utilities import *
 security = HTTPBasic()
 router = APIRouter()
 
-@router.get("/read/projects")
-def read_projects(credentials: HTTPBasicCredentials = Depends(security)):
+@router.get("/projects")
+def get_projects(settings: bool = False, credentials: HTTPBasicCredentials = Depends(security)):
 	try:
-		res = UserMongoHandler(PROJECT_SETTINGS, credentials).find_one({})
+		res = UserMongoHandler(PROJECT_SETTINGS, credentials).find({})
 		if not res:
 			return OperationError(error='not found')
-		return res
+		elif settings:
+			return res
+
+		names = []
+		for entry in res:
+			names.append(entry.get('project'))
+		return names
 	except Exception as e:
 		logger.error(e)
 		abort(500)
 
 
-@router.get("/read/project/base")
-def read_project(project: str, credentials: HTTPBasicCredentials = Depends(security)):
+@router.get("/{project}/settings")
+def project_settings(project: str, credentials: HTTPBasicCredentials = Depends(security)):
 	try:
-		res = UserMongoHandler(PROJECT_SETTINGS, credentials).find_one({'project': setting.project})
+		res = UserMongoHandler(PROJECT_SETTINGS, credentials).find_one({'project': project})
 		if not res:
 			return OperationError(error='not found')
 		return res
@@ -63,6 +69,38 @@ def edit_project(setting: ProjectSettings, credentials: HTTPBasicCredentials = D
 			return OperationError(error='not found')
 		manage.update({'project': setting.project}, setting.dict())
 		return OperationSuccess()
+	except Exception as e:
+		logger.error(e)
+		abort(500)
+
+
+@router.post("/add/ssh/key")
+def add_key(ssh_key: str, credentials: HTTPBasicCredentials = Depends(security)):
+	try:
+		UserMongoHandler(USER_SSH_KEYS, credentials).store({'ssh_key': ssh_key})
+		return OperationSuccess()
+	except Exception as e:
+		logger.error(e)
+		abort(500)
+
+
+@router.delete("/delete/ssh/key")
+def delete_key(ssh_key: str, credentials: HTTPBasicCredentials = Depends(security)):
+	try:
+		UserMongoHandler(USER_SSH_KEYS, credentials).remove({'ssh_key': ssh_key})
+		return OperationSuccess()
+	except Exception as e:
+		logger.error(e)
+		abort(500)
+
+
+@router.get("/ssh/key")
+def get_keys(credentials: HTTPBasicCredentials = Depends(security)):
+	try:
+		res = UserMongoHandler(USER_SSH_KEYS, credentials).find({})
+		if res:
+			return res
+		return OperationError(error='not found')
 	except Exception as e:
 		logger.error(e)
 		abort(500)

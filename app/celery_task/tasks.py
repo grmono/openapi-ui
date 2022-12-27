@@ -31,20 +31,22 @@ def store_sdk(search, encoded, operation_id, project_name):
 	documents = GenericMongoHandler(DOCUMENTS)
 	handler = GenericMongoHandler(TASKS)
 	settings_search = GenericMongoHandler(PROJECT_SETTINGS)
-	tenant_manage = TenantManagement()
+	user_handler = GenericMongoHandler(USER_SSH_KEYS)
 	documents.store({
 		'uuid': operation_id,
 		'file': encoded,
 		'datetime': get_timestamp(),
-		'url': url,
 		'project': project_name
 		}
 	)
 	handler.update(search, {'status': TaskState.FINISHED.value})
 	settings = settings_search.find_one({'project': project_name})
 	if settings.get("push_to_git"):
-		user_info = tenant_manage.find(settings.user)
-		ssh_key = user_info.get('ssh_key')
+		ssh_key = user_handler.find_one({'user': settings.get('user')})
+		if ssh_key:
+			ssh_key = ssh_key.get('ssh_key')
+		else:
+			logger.warning('User does not have an ssh key')
 		git_url = settings.get("push_to_git")
 		## Implement git commit to repo
 
@@ -58,13 +60,19 @@ def build_sdk_from_url(url: HttpUrl, language: SupportedLanguages, user: str, op
 	builds = GenericMongoHandler(BUILDS)
 
 	try:
+		headers = {'Content-Type':'application/json'}
 		request_data = OpenAPIRequest(openAPIUrl=url).dict()
 		language = str(language.lower())
 		handler.update(search, {'status': TaskState.RUNNING.value})
-		response = requests.post(url=f'http://{OPENAPI_GENERATOR}/api/gen/clients/{language}', data=request_data)
+		generator_url = f'http://{OPENAPI_GENERATOR}/api/gen/clients/{language}'
+		logger.info(f"Sending Request to generator url:{generator_url}")
+		response = requests.post(url=generator_url, json=request_data, headers=headers)
+		logger.info("Received response")
+		logger.info(response.text)
 		data = BuildLogs(
 			user = user,
-			logs = response,
+			logs = response.text,
+			project = project_name,
 			url = url,
 			datetime = get_timestamp(),
 			language = language,
@@ -74,6 +82,7 @@ def build_sdk_from_url(url: HttpUrl, language: SupportedLanguages, user: str, op
 		if response.status_code != 200:
 			raise Exception("Generator error")
 
+		response = json.loads(response.text)
 		link = response.get('link')
 		response = requests.get(url=link, allow_redirects=True)
 		if response.status_code != 200:
@@ -95,13 +104,15 @@ def build_sdk_from_spec(spec: dict, language: SupportedLanguages, user: str, ope
 	documents = GenericMongoHandler(DOCUMENTS)
 
 	try:
+		headers = {'Content-Type':'application/json'}
 		request_data = OpenAPIRequest(spec=url).dict()
 		language = str(language.lower())
 		handler.update(search, {'status': TaskState.RUNNING.value})
-		response = requests.post(url=f'http://{OPENAPI_GENERATOR}/api/gen/clients/{language}', data=request_data)
+		response = requests.post(url=f'http://{OPENAPI_GENERATOR}/api/gen/clients/{language}', json=request_data, headers=headers)
 		data = BuildLogs(
 			user = user,
-			logs = response,
+			project = project_name,
+			logs = response.text,
 			datetime = get_timestamp(),
 			language = language,
 			operation_id = operation_id
@@ -110,6 +121,7 @@ def build_sdk_from_spec(spec: dict, language: SupportedLanguages, user: str, ope
 		if response.status_code != 200:
 			raise Exception("Generator error")
 
+		response = json.loads(response.text)
 		link = response.get('link')
 		response = requests.get(url=link, allow_redirects=True)
 		if response.status_code != 200:

@@ -38,14 +38,14 @@ class GenericGridFSHandler():
 
 class GenericMongoHandler():
 
-	def __init__(self, database: str):
+	def __init__(self, database):
 		self.db = database
 
 	def find_one(self, search):
 		return mongo2json(self.db.find_one(search), False)
 
-	def find_many(self, search):
-		return mongo2json(self.db.find_many(search, True))
+	def find(self, search):
+		return mongo2json(self.db.find(search, True))
 
 	def update(self, search: dict, update: dict, upsert=True):
 		return self.db.update_one(search, {"$set": update}, upsert=upsert)
@@ -60,17 +60,17 @@ class GenericMongoHandler():
 class UserMongoHandler():
 
 
-	def __init__(self, database: str, credentials):
+	def __init__(self, database, credentials):
 		self.db = database
 		self.username = credentials.username
 
-	def find_one(self, search):
+	def find_one(self, search: dict):
 		search['user'] = self.username
-		return mongo2json(self.db.find_one(search), False)
+		return mongo2json(self.db.find_one(search, {"_id": 0}), False)
 
-	def find_many(self, search):
+	def find(self, search: dict):
 		search['user'] = self.username
-		return mongo2json(self.db.find_many(search, True))
+		return mongo2json(self.db.find(search))
 
 	def update(self, search: dict, update: dict, upsert=True):
 		search['user'] = self.username
@@ -80,5 +80,13 @@ class UserMongoHandler():
 		try:
 			model['user'] = self.username
 			return str(self.db.insert_one(model))
+		except Exception as e:
+			logger.error(e)
+
+	def remove(self, model: dict):
+		try:
+			model['user'] = self.username
+			self.db.remove(model)
+			return True
 		except Exception as e:
 			logger.error(e)

@@ -9,6 +9,11 @@ from definitions.enums import *
 from openapi_spec_validator import validate_spec_url
 
 
+class SSHKey(BaseModel):
+	user: str
+	ssh_key: str
+	
+
 class BuildLogs(BaseModel):
 	logs: str
 	user: str
