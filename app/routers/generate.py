@@ -41,7 +41,7 @@ def build_sdk(
 			GenericMongoHandler(TASKS).store(task.dict())
 			build_sdk_from_file.apply_async(args=[settings.get('api_spec'), language, credentials.username, task.uuid, project])
 		else:
-			return OperationError(error="Must specify specification via URL or Spec File")	
+			return OperationError(error="Must specify specification via URL or Spec File")
 		return task.dict()
 	except Exception as e:
 		logger.error(e)

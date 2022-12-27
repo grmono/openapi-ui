@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Request, HTTPException, Header, Depends
 from error_handler import *
 from fastapi.security import HTTPBasic, HTTPBasicCredentials
+from database.db_handler import *
 
 from definitions.response_models import *
 from definitions.request_models import *

@@ -45,7 +45,7 @@ class ProjectSettings(BaseModel):
 				validate_spec_url(v)
 				return v
 			except Exception as e:
-				raise Exception(str(e))
+				raise ValueError(str(e))
 
 	@validator("api_spec")
 	def validate_spec(cls, v):
@@ -54,4 +54,4 @@ class ProjectSettings(BaseModel):
 				validate_spec(v)
 				return v
 			except Exception as e:
-				raise Exception(str(e))
+				raise ValueError(str(e))

@@ -78,7 +78,7 @@ class UserMongoHandler():
 
 	def store(self, model: dict):
 		try:
-			model['username'] = self.username
+			model['user'] = self.username
 			return str(self.db.insert_one(model))
 		except Exception as e:
 			logger.error(e)
