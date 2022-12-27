@@ -61,7 +61,7 @@ def build_sdk_from_url(url: HttpUrl, language: SupportedLanguages, user: str, op
 		request_data = OpenAPIRequest(openAPIUrl=url).dict()
 		language = str(language.lower())
 		handler.update(search, {'status': TaskState.RUNNING.value})
-		response = request.post(url=f'http://{OPENAPI_GENERATOR}/api/gen/clients/{language}', data=request_data)
+		response = requests.post(url=f'http://{OPENAPI_GENERATOR}/api/gen/clients/{language}', data=request_data)
 		data = BuildLogs(
 			user = user,
 			logs = response,
@@ -75,7 +75,7 @@ def build_sdk_from_url(url: HttpUrl, language: SupportedLanguages, user: str, op
 			raise Exception("Generator error")
 
 		link = response.get('link')
-		response = request.get(url=link, allow_redirects=True)
+		response = requests.get(url=link, allow_redirects=True)
 		if response.status_code != 200:
 			raise Exception("Failed to download generated file")
 		store_sdk(search, response, operation_id, project_name)
@@ -98,7 +98,7 @@ def build_sdk_from_spec(spec: dict, language: SupportedLanguages, user: str, ope
 		request_data = OpenAPIRequest(spec=url).dict()
 		language = str(language.lower())
 		handler.update(search, {'status': TaskState.RUNNING.value})
-		response = request.post(url=f'http://{OPENAPI_GENERATOR}/api/gen/clients/{language}', data=request_data)
+		response = requests.post(url=f'http://{OPENAPI_GENERATOR}/api/gen/clients/{language}', data=request_data)
 		data = BuildLogs(
 			user = user,
 			logs = response,
@@ -111,7 +111,7 @@ def build_sdk_from_spec(spec: dict, language: SupportedLanguages, user: str, ope
 			raise Exception("Generator error")
 
 		link = response.get('link')
-		response = request.get(url=link, allow_redirects=True)
+		response = requests.get(url=link, allow_redirects=True)
 		if response.status_code != 200:
 			raise Exception("Failed to download generated file")
 		store_sdk(search, response, operation_id, project_name)

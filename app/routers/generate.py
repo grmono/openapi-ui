@@ -33,7 +33,7 @@ def build_sdk(
 		if not settings:
 			return OperationError(error='unknown project')
 
-		task = TaskStatus(uuid=str(uuid.uuid4()), user=credentials.username)
+		task = TaskStatus(uuid=str(uuid.uuid4()), user=credentials.username, project=project)
 		if settings.get('url'):
 			GenericMongoHandler(TASKS).store(task.dict())
 			build_sdk_from_url.apply_async(args=[settings.get('url'), language, credentials.username, task.uuid, project])
