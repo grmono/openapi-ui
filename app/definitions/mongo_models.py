@@ -12,23 +12,23 @@ from openapi_spec_validator import validate_spec_url
 class SSHKey(BaseModel):
 	user: str
 	ssh_key: str
-	
+
 
 class BuildLogs(BaseModel):
 	logs: str
 	user: str
 	datetime: str
-	url: str = None
+	url: str = ""
 	language: str
 	operation_id: str
-	type: LogTypes = LogTypes.Build.value
+	type: LogTypes = LogTypes.SDK.value
 	project: str
 
 
 class TaskStatus(BaseModel):
 	uuid: str
-	user: str = None
-	group: str = None
+	user: str = ""
+	group: str = ""
 	type: str = 'build_sdk'
 	project: str
 	status: TaskState = TaskState.PENDING.value
@@ -37,10 +37,10 @@ class TaskStatus(BaseModel):
 class ProjectSettings(BaseModel):
 	project: str
 	user: str
-	group: str = None
-	url: HttpUrl = None
+	group: str = ""
+	url: HttpUrl = ""
 	api_spec: dict = {}
-	push_to_git: HttpUrl = None
+	push_to_git: HttpUrl = ""
 	description: str = ""
 
 	@validator("url")

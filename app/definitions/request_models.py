@@ -15,10 +15,10 @@ class CreateTenant(BaseModel):
 	username: str
 	locked: bool = False
 	email: EmailStr
-	firstname: str = None
-	lastname: str = None
-	creation_date: str = None
-	ssh_key: str = None
+	firstname: str = ""
+	lastname: str = ""
+	creation_date: str = ""
+	ssh_key: str = ""
 	@validator("password")
 	def crypt_pass(cls, v):
 		return bcrypt.hashpw(v.encode(), salt)

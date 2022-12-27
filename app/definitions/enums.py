@@ -9,8 +9,8 @@ class TaskState(str, Enum):
 
 
 class LogTypes(str, Enum):
-	Build = 'sdk'
-	Stub = 'stub'
+	SDK = 'SDK'
+	STUB = 'STUB'
 
 
 class SupportedLanguages(str, Enum):
@@ -49,3 +49,21 @@ class SupportedLanguages(str, Enum):
 	Scala = 'Scala'
 	Swift = 'Swift'
 	Typescript = 'Typescript'
+
+
+class SupportedFrameworks(str, Enum):
+	C_PLUS_PLUS = ' C++'
+	C_SHARP = 'C#'
+	ADA = 'Ada'
+	ERLANG = 'Erlang'
+	F_SHARP = 'F#'
+	GO = 'Go'
+	Haskell = 'Haskell'
+	Java = 'Java'
+	Kotlin = 'Kotlin'
+	PHP = 'PHP'
+	Python = 'Python'
+	NodeJS = 'NodeJS'
+	Ruby = 'Ruby'
+	Rust = 'Rust'
+	Scala = 'Scala'

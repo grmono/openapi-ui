@@ -27,19 +27,30 @@ from definitions.mongo_models import *
 
 from celery_task.worker import celery_worker
 
-def store_sdk(search, encoded, operation_id, project_name):
-	documents = GenericMongoHandler(DOCUMENTS)
-	handler = GenericMongoHandler(TASKS)
+
+@celery_worker.task(name='build_stub_from_url.task', bind=False)
+def build_stub_from_url(url: HttpUrl, language: SupportedLanguages, user: str, operation_id: str, project_name: str = None):
+	return build_stub(language, user, operation_id, project_name, url)
+
+
+@celery_worker.task(name='build_stub_from_spec.task', bind=False)
+def build_stub_from_spec(spec: dict, language: SupportedLanguages, user: str, operation_id: str, project_name: str = None):
+	return build_stub(language, user, operation_id, project_name, None, spec)
+
+
+
+@celery_worker.task(name='build_sdk_from_url.task', bind=False)
+def build_sdk_from_url(url: HttpUrl, language: SupportedLanguages, user: str, operation_id: str, project_name: str = None):
+	return build_sdk(language, user, operation_id, project_name, url)
+
+
+@celery_worker.task(name='build_sdk_from_spec.task', bind=False)
+def build_sdk_from_spec(spec: dict, language: SupportedLanguages, user: str, operation_id: str, project_name: str = None):
+	return build_sdk(language, user, operation_id, project_name, None, spec)
+
+
+def push_to_git(project_name):
 	settings_search = GenericMongoHandler(PROJECT_SETTINGS)
-	user_handler = GenericMongoHandler(USER_SSH_KEYS)
-	documents.store({
-		'uuid': operation_id,
-		'file': encoded,
-		'datetime': get_timestamp(),
-		'project': project_name
-		}
-	)
-	handler.update(search, {'status': TaskState.FINISHED.value})
 	settings = settings_search.find_one({'project': project_name})
 	if settings.get("push_to_git"):
 		ssh_key = user_handler.find_one({'user': settings.get('user')})
@@ -50,18 +61,35 @@ def store_sdk(search, encoded, operation_id, project_name):
 		git_url = settings.get("push_to_git")
 		## Implement git commit to repo
 
-	return True
+
+def store_generated_zip(search, encoded, operation_id, project_name, type=LogTypes.SDK.value):
+	documents = GenericMongoHandler(DOCUMENTS)
+	handler = GenericMongoHandler(TASKS)
+	user_handler = GenericMongoHandler(USER_SSH_KEYS)
+	documents.store({
+		'uuid': operation_id,
+		'file': encoded,
+		'type': type,
+		'datetime': get_timestamp(),
+		'project': project_name
+		}
+	)
+	handler.update(search, {'status': TaskState.FINISHED.value})
+	return push_to_git(project_name)
 
 
-@celery_worker.task(name='build_sdk_url.task', bind=False)
-def build_sdk_from_url(url: HttpUrl, language: SupportedLanguages, user: str, operation_id: str, project_name: str = None):
+def build_sdk(language, user, operation_id, project_name = None, url = None, spec = None):
 	search = {'uuid': operation_id}
 	handler = GenericMongoHandler(TASKS)
 	builds = GenericMongoHandler(BUILDS)
 
 	try:
 		headers = {'Content-Type':'application/json'}
-		request_data = OpenAPIRequest(openAPIUrl=url).dict()
+		if url:
+			request_data = OpenAPIRequest(openAPIUrl=url).dict()
+		else:
+			request_data = OpenAPIRequest(spec=spec).dict()
+
 		language = str(language.lower())
 		handler.update(search, {'status': TaskState.RUNNING.value})
 		generator_url = f'http://{OPENAPI_GENERATOR}/api/gen/clients/{language}'
@@ -87,7 +115,7 @@ def build_sdk_from_url(url: HttpUrl, language: SupportedLanguages, user: str, op
 		response = requests.get(url=link, allow_redirects=True)
 		if response.status_code != 200:
 			raise Exception("Failed to download generated file")
-		store_sdk(search, response, operation_id, project_name)
+		store_generated_zip(search, response, operation_id, project_name)
 		return data.dict()
 	except Exception as e:
 		logger.error(e)
@@ -96,23 +124,30 @@ def build_sdk_from_url(url: HttpUrl, language: SupportedLanguages, user: str, op
 		return OperationError(error=str(e)).dict()
 
 
-@celery_worker.task(name='build_sdk_url.task', bind=False)
-def build_sdk_from_spec(spec: dict, language: SupportedLanguages, user: str, operation_id: str, project_name: str = None):
+def build_stub(language, user, operation_id, project_name = None, url = None, spec = None):
 	search = {'uuid': operation_id}
 	handler = GenericMongoHandler(TASKS)
 	builds = GenericMongoHandler(BUILDS)
-	documents = GenericMongoHandler(DOCUMENTS)
-
 	try:
 		headers = {'Content-Type':'application/json'}
-		request_data = OpenAPIRequest(spec=url).dict()
+		if url:
+			request_data = OpenAPIRequest(openAPIUrl=url).dict()
+		else:
+			request_data = OpenAPIRequest(spec=spec).dict()
+
 		language = str(language.lower())
 		handler.update(search, {'status': TaskState.RUNNING.value})
-		response = requests.post(url=f'http://{OPENAPI_GENERATOR}/api/gen/clients/{language}', json=request_data, headers=headers)
+		generator_url = f'http://{OPENAPI_GENERATOR}/api/gen/servers/{language}'
+		logger.info(f"Sending Request to generator url:{generator_url}")
+		response = requests.post(url=generator_url, json=request_data, headers=headers)
+		logger.info("Received response")
+		logger.info(response.text)
 		data = BuildLogs(
 			user = user,
-			project = project_name,
 			logs = response.text,
+			project = project_name,
+			url = url,
+			type = LogTypes.STUB.value,
 			datetime = get_timestamp(),
 			language = language,
 			operation_id = operation_id
@@ -126,7 +161,7 @@ def build_sdk_from_spec(spec: dict, language: SupportedLanguages, user: str, ope
 		response = requests.get(url=link, allow_redirects=True)
 		if response.status_code != 200:
 			raise Exception("Failed to download generated file")
-		store_sdk(search, response, operation_id, project_name)
+		store_generated_zip(search, response, operation_id, project_name, LogTypes.STUB.value)
 		return data.dict()
 	except Exception as e:
 		logger.error(e)
