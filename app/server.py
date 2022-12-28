@@ -1,24 +1,21 @@
 #!/usr/bin/python3
 import time
 import random
-
+import uvicorn
 from fastapi.responses import JSONResponse
 from fastapi import FastAPI, HTTPException, Depends, Request, APIRouter
-
-from definitions.request_models import *
-from definitions.response_models import *
-
-from routers import generate, management, user_profile
-
-from common.config import *
-from auth import *
-
 from fastapi_utils.tasks import repeat_every
 
 from starlette.applications import Starlette
 from starlette.responses import PlainTextResponse
-
 from content_size_limit_asgi import ContentSizeLimitMiddleware
+
+from definitions.request_models import *
+from definitions.response_models import *
+from routers import generate, management, user_profile, register
+from common.config import *
+from auth import *
+
 
 app = FastAPI(
 	title="OPENAPI-UI",
@@ -59,5 +56,12 @@ app.include_router(management.router,
 app.include_router(user_profile.router,
 	prefix="/api/v1/profile",
 	tags=['Profile Management'],
+    dependencies=[Depends(get_current_username)],
+	responses={404: {"description": "Not found"}})
+
+
+app.include_router(register.router,
+	prefix="/api/v1/register",
+	tags=['Registration'],
     dependencies=[Depends(get_current_username)],
 	responses={404: {"description": "Not found"}})

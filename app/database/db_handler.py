@@ -23,6 +23,12 @@ class TenantManagement():
 	def get_tenant(self, username):
 		return self.db.find_one({'username': username})
 
+	def remove_tenant(self, username):
+		return self.db.remove({'username': username})
+
+	def edit_tenant(self, username, info: dict):
+		return self.db.update_one({'username': username}, {"$set": info}, upsert=False)
+
 
 class GenericGridFSHandler():
 

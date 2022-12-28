@@ -18,7 +18,17 @@ class CreateTenant(BaseModel):
 	firstname: str = ""
 	lastname: str = ""
 	creation_date: str = ""
-	ssh_key: str = ""
+	@validator("password")
+	def crypt_pass(cls, v):
+		return bcrypt.hashpw(v.encode(), salt)
+
+
+class EditTenant(BaseModel):
+	password: str = None
+	locked: bool = False
+	email: EmailStr = None
+	firstname: str = ""
+	lastname: str = ""
 	@validator("password")
 	def crypt_pass(cls, v):
 		return bcrypt.hashpw(v.encode(), salt)

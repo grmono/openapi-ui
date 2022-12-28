@@ -60,7 +60,7 @@ def create_project(setting: ProjectSettings, credentials: HTTPBasicCredentials =
 		abort(500)
 
 
-@router.post("/edit/project/base")
+@router.put("/edit/project/base")
 def edit_project(setting: ProjectSettings, credentials: HTTPBasicCredentials = Depends(security)):
 	try:
 		manage = UserMongoHandler(PROJECT_SETTINGS, credentials)
@@ -68,6 +68,19 @@ def edit_project(setting: ProjectSettings, credentials: HTTPBasicCredentials = D
 		if not manage.find_one({'project': setting.project}):
 			return OperationError(error='not found')
 		manage.update({'project': setting.project}, setting.dict())
+		return OperationSuccess()
+	except Exception as e:
+		logger.error(e)
+		abort(500)
+
+
+@router.delete("/delete/project/base")
+def delete_project(project: str, credentials: HTTPBasicCredentials = Depends(security)):
+	try:
+		manage = UserMongoHandler(PROJECT_SETTINGS, credentials)
+		if not manage.find_one({'project': project}):
+			return OperationError(error='not found')
+		manage.remove({'project': project})
 		return OperationSuccess()
 	except Exception as e:
 		logger.error(e)

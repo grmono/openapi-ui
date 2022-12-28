@@ -20,10 +20,10 @@ def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
 	try:
 		tenant_info = TenantManagement().get_tenant(credentials.username)
 		if not tenant_info or not bcrypt.checkpw(credentials.password.encode(), tenant_info.get('password')):
-			logger.info(f"Tenant:{tenant_info} failed to authenticated")
+			logger.warning(f"Tenant:{credentials.username} failed to authenticated")
 			abort(401)
 		elif tenant_info.get('locked'):
-			logger.warning(f"Blocked Tenant:{tenant_info} attempted to authenticate")
+			logger.warning(f"Blocked Tenant:{credentials.username} attempted to authenticate")
 			abort(403)
 		else:
 			logger.debug(f"Tenant validated succesfully")
@@ -36,7 +36,7 @@ def get_current_username(credentials: HTTPBasicCredentials = Depends(security)):
 def only_management(credentials: HTTPBasicCredentials = Depends(security)):
 	try:
 		if credentials.username not in REGISTER_USER_ALLOWED_ROLE:
-			abort(404)
+			abort(404, "Invalid Path")
 		else:
 			return credentials
 	except Exception as e:
