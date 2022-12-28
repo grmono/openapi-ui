@@ -34,6 +34,7 @@ def get_projects(settings: bool = False, credentials: HTTPBasicCredentials = Dep
 		abort(500)
 
 
+
 @router.get("/{project}/settings")
 def project_settings(project: str, credentials: HTTPBasicCredentials = Depends(security)):
 	try:
@@ -121,6 +122,18 @@ def get_keys(credentials: HTTPBasicCredentials = Depends(security)):
 		if res:
 			return res
 		return OperationError(error='not found')
+	except Exception as e:
+		logger.error(e)
+		abort(500)
+
+
+@router.get("/{project}/spec")
+def project_spec(project: str, credentials: HTTPBasicCredentials = Depends(security)):
+	try:
+		res = UserMongoHandler(PROJECT_SETTINGS, credentials).find_one({'project': project})
+		if not res or not res.get('api_spec'):
+			return OperationError(error='not found')
+		return res.get('api_spec')
 	except Exception as e:
 		logger.error(e)
 		abort(500)
