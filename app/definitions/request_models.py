@@ -18,6 +18,8 @@ class CreateTenant(BaseModel):
 	firstname: str = ""
 	lastname: str = ""
 	creation_date: str = ""
+	email_verified: bool = False
+	max_projects: int = 3
 	@validator("password")
 	def crypt_pass(cls, v):
 		return bcrypt.hashpw(v.encode(), salt)
@@ -29,9 +31,11 @@ class EditTenant(BaseModel):
 	email: EmailStr = None
 	firstname: str = ""
 	lastname: str = ""
+	max_projects: int = 3
 	@validator("password")
 	def crypt_pass(cls, v):
-		return bcrypt.hashpw(v.encode(), salt)
+		if v:
+			return bcrypt.hashpw(v.encode(), salt)
 
 
 class OpenAPIRequest(BaseModel):

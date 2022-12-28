@@ -16,6 +16,7 @@ from common.utilities import *
 security = HTTPBasic()
 router = APIRouter()
 
+
 @router.get("/projects")
 def get_projects(settings: bool = False, credentials: HTTPBasicCredentials = Depends(security)):
 	try:
@@ -24,7 +25,6 @@ def get_projects(settings: bool = False, credentials: HTTPBasicCredentials = Dep
 			return OperationError(error='not found')
 		elif settings:
 			return res
-
 		names = []
 		for entry in res:
 			names.append(entry.get('project'))
@@ -49,12 +49,19 @@ def project_settings(project: str, credentials: HTTPBasicCredentials = Depends(s
 @router.post("/create/project/base")
 def create_project(setting: ProjectSettings, credentials: HTTPBasicCredentials = Depends(security)):
 	try:
+		tenant_info = TenantManagement().find_one(
+			EditTenant(username=credentials.username).dict(exclude_none=True))
 		manage = UserMongoHandler(PROJECT_SETTINGS, credentials)
 		setting.user = credentials.username
 		if manage.find_one({'project': setting.project}):
 			return OperationError(error='Project already exists')
-		manage.store(setting.dict())
-		return OperationSuccess()
+		elif not tenant_info.get('max_projects') or tenant_info.get('max_projects') == -1:
+			manage.store(setting.dict())
+			return OperationSuccess()
+		elif len(manage.find({})) >= tenant_info.get('max_projects'):
+			return OperationError(error='Exceeding limit')
+		else:
+			return OperationError(error='unknow error occured')
 	except Exception as e:
 		logger.error(e)
 		abort(500)
