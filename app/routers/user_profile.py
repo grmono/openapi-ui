@@ -50,10 +50,10 @@ def project_settings(project: str, credentials: HTTPBasicCredentials = Depends(s
 @router.post("/create/project/base")
 def create_project(setting: ProjectSettings, credentials: HTTPBasicCredentials = Depends(security)):
 	try:
-		tenant_info = TenantManagement().find_one(
-			EditTenant(username=credentials.username).dict(exclude_none=True))
+		tenant_info = TenantManagement().get_tenant(username=credentials.username)
 		manage = UserMongoHandler(PROJECT_SETTINGS, credentials)
 		setting.user = credentials.username
+
 		if manage.find_one({'project': setting.project}):
 			return OperationError(error='Project already exists')
 		elif not tenant_info.get('max_projects') or tenant_info.get('max_projects') == -1:
@@ -98,8 +98,10 @@ def delete_project(project: str, credentials: HTTPBasicCredentials = Depends(sec
 @router.post("/add/ssh/key")
 def add_key(ssh_key: str, credentials: HTTPBasicCredentials = Depends(security)):
 	try:
-		UserMongoHandler(USER_SSH_KEYS, credentials).store({'ssh_key': ssh_key})
-		return OperationSuccess()
+		if validate_ssh_key(ssh_key):
+			UserMongoHandler(USER_SSH_KEYS, credentials).store({'ssh_key': ssh_key})
+			return OperationSuccess()
+		return OperationError(error='invalid key provided')	
 	except Exception as e:
 		logger.error(e)
 		abort(500)

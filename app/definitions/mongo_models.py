@@ -24,6 +24,7 @@ class BuildLogs(BaseModel):
 	operation_id: str
 	type: LogTypes = LogTypes.SDK.value
 	project: str
+	git_error: str = None
 
 
 class TaskStatus(BaseModel):
@@ -41,7 +42,7 @@ class ProjectSettings(BaseModel):
 	group: str = ""
 	url: HttpUrl = ""
 	api_spec: dict = {}
-	push_to_git: HttpUrl = ""
+	push_to_git: bool = False
 	description: str = ""
 
 	@validator("url")

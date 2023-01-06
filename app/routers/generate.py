@@ -98,12 +98,13 @@ def build_status(uuid: str = None, credentials: HTTPBasicCredentials = Depends(s
 @router.get("/download")
 def download(uuid: str, credentials: HTTPBasicCredentials = Depends(security)):
 	try:
-		if not GenericMongoHandler(TASKS).find_one({'uuid': uuid, 'user': credentials.username}):
-			return OperationError(error='unknown uuid')
+		if not GenericMongoHandler(TASKS).find_one({'uuid': uuid, 'user': credentials.username, 'status': TaskState.FINISHED.value}):
+			return OperationError(error='uuid not found')
 
-		res = GenericMongoHandler(DOCUMENTS).find_one({'uuid': uuid, 'user': credentials.username})
+		logger.info("Found task succesfully retrieving file")
+		res = GenericMongoHandler(DOCUMENTS).find_one({'uuid': uuid})
 		if not res:
-			return OperationError(error='not found')
+			return OperationError(error='file not found')
 		data = res['file']['$binary']['base64']
 		data = data.encode('ascii')
 		data = base64.b64decode(data)

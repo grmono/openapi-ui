@@ -2,11 +2,14 @@ import datetime
 import json
 import re
 import os
+from io import BytesIO
+from git import Repo, Git
 import requests
 import subprocess
 import tempfile
 import uuid
 import bson
+import zipfile
 import base64
 import shutil
 from bson.binary import Binary
@@ -45,17 +48,41 @@ def build_sdk_from_spec(spec: dict, language: SupportedLanguages, user: str, ope
 	return build_sdk(language, user, operation_id, project_name, None, spec)
 
 
-def push_to_git(project_name):
-	settings_search = GenericMongoHandler(PROJECT_SETTINGS)
-	settings = settings_search.find_one({'project': project_name})
+def push_to_git(project_name, user, zip_file):
+	settings_search = GenericMongoHandler(PROJECT_SETTINGS).find_one({'project': project_name})
 	if settings.get("push_to_git"):
-		ssh_key = user_handler.find_one({'user': settings.get('user')})
-		if ssh_key:
-			ssh_key = ssh_key.get('ssh_key')
-		else:
-			logger.warning('User does not have an ssh key')
-		git_url = settings.get("push_to_git")
-		## Implement git commit to repo
+		try:
+			user_ssh_key = GenericMongoHandler(USER_SSH_KEYS).find_one({'user': user})
+			if user_ssh_key:
+				ssh_key = user_ssh_key.get('ssh_key')
+			else:
+				ssh_key = None
+				logger.warning('User does not have an ssh key set for repo')
+
+
+
+			with tempfile.NamedTemporaryFile() as file_object:
+				git_ssh_cmd = 'ssh'
+				if ssh_key:
+					file_object.write(ssh_key)
+					git_ssh_cmd = f'ssh -i {file_object.name}'
+
+				repo = Repo(f'/tmp/{project_name}')
+				# Note implement capability to push to a new branch by cloning branch first to check validity of git url
+				# Repo.clone_from(push_to_git, f'/tmp/{project_name}',env=dict(GIT_SSH_COMMAND=git_ssh_cmd))
+
+				with zipfile.ZipFile(BytesIO(zip_file)) as zip_ref:
+					zip_ref.extractall(f'/tmp/{project_name}')
+
+				with repo.git.custom_environment(GIT_SSH_COMMAND=git_ssh_cmd):
+					repo.git.add(update=True)
+					repo.index.commit('sdk update')
+					origin = repo.remote(name='origin')
+					origin.push()
+
+		except Exception as e:
+			logger.error(e)
+			return str(e)
 
 
 def store_generated_zip(search, encoded, operation_id, project_name, type=LogTypes.SDK.value):
@@ -70,8 +97,8 @@ def store_generated_zip(search, encoded, operation_id, project_name, type=LogTyp
 		'project': project_name
 		}
 	)
+	logger.info("Task has been stored succesfully")
 	handler.update(search, {'status': TaskState.FINISHED.value})
-	return push_to_git(project_name)
 
 
 def build_sdk(language, user, operation_id, project_name = None, url = None, spec = None):
@@ -111,7 +138,9 @@ def build_sdk(language, user, operation_id, project_name = None, url = None, spe
 		response = requests.get(url=link, allow_redirects=True)
 		if response.status_code != 200:
 			raise Exception("Failed to download generated file")
-		store_generated_zip(search, response, operation_id, project_name)
+		store_generated_zip(search, response.content, operation_id, project_name)
+		git_error = push_to_git(project_name, user, response.content)
+		data.git_error = git_error
 		return data.dict()
 	except Exception as e:
 		logger.error(e)

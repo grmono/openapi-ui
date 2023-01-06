@@ -48,10 +48,10 @@ class GenericMongoHandler():
 		self.db = database
 
 	def find_one(self, search):
-		return mongo2json(self.db.find_one(search), False)
+		return mongo2json(self.db.find_one(search, {"_id": 0}), False)
 
 	def find(self, search):
-		return mongo2json(self.db.find(search, True))
+		return mongo2json(self.db.find(search), True)
 
 	def update(self, search: dict, update: dict, upsert=True):
 		return self.db.update_one(search, {"$set": update}, upsert=upsert)
