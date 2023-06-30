@@ -21,4 +21,4 @@ The purpose of this project is to provide a FastAPI based OpenAPI SDK generator 
      Visit localhost:8000/docs with your browser
 
 ## Docker Integration
-Docker integration is already supported and allows you to use the solutions via docker compose
+Docker integration is already supported and actually mandatory to fully deploy the whole implementation and utilize in your infrastracture
